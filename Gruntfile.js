@@ -34,9 +34,9 @@ var HELP_TEXT =
     '           [opt4]:                  all source files.                           \n' +
     '           [opt5]:       [client] : Executes client side unit tests against all \n' +
     '           [opt6]                   source files.                               \n' +
-    '                         [server] : Executes server side unit tests against all \n' +
+    '                         [unit]   : Executes server side unit tests against all \n' +
     '                                    server source files.                        \n' +
-    '                         [http]   : Executes http request test against server   \n' +
+    '                         [api]    : Executes http request test against server   \n' +
     '                                    routes. This task will automatically launch \n' +
     '                                    the web server prior to running the tests,  \n' +
     '                                    and shutdown the server after the tests have\n' +
@@ -72,9 +72,9 @@ var HELP_TEXT =
     '                       has the effect of making the build artifact easier to    \n' +
     '                       read and troubleshoot.                                   \n' +
     '                                                                                \n' +
-    '   test:[client|http : Executes tests against source files or build artifacts.  \n' +
+    '   test:[unit|api    : Executes tests against source files or build artifacts.  \n' +
     '     server|e2e|all]:  The type of test to execute is specified by the first    \n' +
-    '        [dev|build]    sub target (client/server/http/e2e/all), and the files to\n' +
+    '         [dev|build]   sub target (client/server/api/e2e/all), and the files to \n' +
     '                       test (dev/build) is specified by the second subtarget.   \n' +
     '                       The first sub target is mandatory.                       \n' +
     '                       If the "build" subtarget is specified, sources must      \n' +
@@ -83,7 +83,7 @@ var HELP_TEXT =
     '                       If required by the tests, an instance of express will be \n' +
     '                       started prior to executing the tests.                    \n' +
     '                       If [all] is used as the test type, all four tests        \n' +
-    '                       (client, server, http and e2e) wll be executed.          \n' +
+    '                       (client, server, api and e2e) wll be executed.          \n' +
     '                                                                                \n' +
     '   bump:[major|minor]: Updates the version number of the package. By default,   \n' +
     '                       this task only increments the patch version number. Major\n' +
@@ -133,6 +133,7 @@ module.exports = function(grunt) {
         src: null,
         test: {
             unit: null,
+            api: null,
             e2e: null
         },
         docs: null,
@@ -404,36 +405,9 @@ module.exports = function(grunt) {
                 colors: true
             },
             default: [TEST.getChild('unit').getAllFilesPattern('js')],
-            unit: [TEST.getChild('unit').getAllFilesPattern('js')]
-        },
-
-        /**
-         * Configuration for grunt-protractor-runner, which is used to:
-         *  - Execute end to end tests on the application.
-         */
-        protractor: {
-            options: {
-                keepAlive: false,
-                noColor: false,
-                // configFile: TEST.e2e.getChildPath('conf/default.js'),
-                args: {
-                    // If the args are overridden in child targets, *all*
-                    // properties of the args are overridden. It does not
-                    // perform a merge.
-                    framework: ['mocha'],
-                    mochaOpts: {
-                        reporter: 'spec',
-                        slow: 2000,
-                        timeout: 10000
-                    },
-                    browser: 'chrome',
-                    specs: [TEST.getChild('e2e').getAllFilesPattern('js')],
-                    // exclude: [ TEST.getChild('e2e').getChildPath('conf/*') ],
-                    chromeDriver:
-                        './node_modules/grunt-protractor-runner/node_modules/protractor/selenium/chromedriver'
-                }
-            },
-            default: {}
+            unit: [TEST.getChild('unit').getAllFilesPattern('js')],
+            api: [TEST.getChild('api').getAllFilesPattern('js')],
+            e2e: [TEST.getChild('e2e').getAllFilesPattern('js')]
         },
 
         /**
@@ -586,9 +560,10 @@ module.exports = function(grunt) {
         // 'prettysass:dev',
         'lint',
         'build',
-        'test:client:build',
-        'test:server:build',
-        'test:e2e:build',
+        // 'test:client:build',
+        'test:unit',
+        'test:api',
+        'test:e2e',
         'clean'
     ]);
 
@@ -601,9 +576,10 @@ module.exports = function(grunt) {
         // 'prettysass:dev',
         'lint',
         'build',
-        'test:client:build',
-        'test:server:build',
-        'test:e2e:build',
+        // 'test:client:build',
+        'test:unit',
+        'test:api',
+        'test:e2e',
         'compress:default'
     ]);
 
@@ -612,71 +588,34 @@ module.exports = function(grunt) {
      * tests based on the test type passed in. Tests may be executed against
      * dev code or build artifacts.
      */
-    grunt.registerTask(
-        'test',
-        'Executes tests (client/server/http/e2e/all) against sources or build artifacts',
-        function(testType, target) {
-            var testAction;
-            var startServer = false;
+    grunt.registerTask('test', 'Executes tests (unit/api/e2e/all) against sources', (testType) => {
+        testType = testType || 'unit';
+        let knownTestTypes = ['unit', 'api', 'e2e'];
+        let task;
 
-            target = target || 'dev';
+        if (knownTestTypes.indexOf(testType) >= 0) {
+            task = `mocha_istanbul:${testType}`;
 
-            if (testType === 'client') {
-                if (
-                    target !== 'dev' &&
-                    target !== 'build' &&
-                    target !== 'monitor'
-                ) {
-                    grunt.log.warn(
-                        'The target [' +
-                            target +
-                            '] is not applicable for client testing'
-                    );
-                } else {
-                    testAction = 'karma:' + target;
-                }
-            } else if (testType === 'server') {
-                testAction = 'mocha_istanbul:default';
-            } else if (testType === 'http') { // TODO: ask Vamshi what this is about
-                testAction = 'mochaTest:default';
-                startServer = true;
-                //TODO: Fix e2e tests and uncomment
-                //} else if(testType === 'e2e') {
-                //    testAction = 'protractor:default';
-                //    startServer = true;
+            const testSuite = grunt.option('test-suite');
+            if (typeof testSuite === 'string' && testSuite.length > 0) {
+                const path = TEST.getChild(testType).getFilePath(testSuite);
+                grunt.log.writeln(`Running test suite: [${testSuite}]`);
+                grunt.log.writeln(`Tests will be limited to: [${path}]`);
+                grunt.config.set(`mocha_istanbul.${testType}`, path);
             }
-
-            startServer = startServer && !grunt.option('no-server');
-
-            if (target !== 'monitor') {
-                grunt.task.run('env:' + target);
-            } else {
-                grunt.task.run('env:dev');
-            }
-
-            if (testAction) {
-                if (startServer) {
-                    grunt.task.run('express:' + target);
-                }
-                grunt.task.run(testAction);
-                if (startServer) {
-                    grunt.task.run('express:' + target + ':stop');
-                }
-            } else if (testType === 'all') {
-                grunt.task.run('test:client:' + target);
-                grunt.task.run('test:server:' + target);
-                grunt.task.run('test:http:' + target);
-                //TODO: Fix e2e tests and uncomment
-                //grunt.task.run('test:e2e:' + target);
-            } else if (testType === 'e2e') {
-                grunt.log.warn('End to end tests have been disabled.');
-            } else {
-                grunt.log.warn(
-                    'Unrecognized test type or target. Please see help (grunt help) for task usage information'
-                );
-            }
+        } else if (testType === 'all') {
+            knownTestTypes.forEach((type) => {
+                grunt.task.run(`test:${type}`);
+            });
         }
-    );
+
+        if (task) {
+            grunt.task.run(task);
+        } else {
+            grunt.log.error(`Unrecognized test type: [${testType}]`);
+            grunt.log.warn('Type "grunt help" for help documentation');
+        }
+    });
 
     // Monitor task - track changes on different sources, and enable auto
     // execution of tests if requested.
@@ -691,7 +630,6 @@ module.exports = function(grunt) {
             var tasks = [];
             var runClientTests = false;
 
-            var serverMode = grunt.option('serverMode') || 'dev';
             // Process the arguments (specified as subtasks).
             for (var index = 0; index < arguments.length; index++) {
                 var arg = arguments[index];
@@ -699,19 +637,20 @@ module.exports = function(grunt) {
                 if (arg === 'lint') {
                     tasks.push('eslint:dev');
                 } else if ('client' === arg) {
-                    grunt.log.warn(
-                        'When client side tests are chosen, monitoring will not run any other tasks'
-                    );
-                    tasks.slice(0, 0);
-                    tasks.push('test:client:monitor');
-                    runClientTests = true;
-                    break;
-                } else if ('http' === arg) {
-                    tasks.push('test:http:' + serverMode);
-                } else if ('server' === arg) {
-                    tasks.push('test:server:' + serverMode);
+                    grunt.log.error('Monitoring client has not been implemented');
+                    // grunt.log.warn(
+                    //     'When client side tests are chosen, monitoring will not run any other tasks'
+                    // );
+                    // tasks.slice(0, 0);
+                    // tasks.push('test:client:monitor');
+                    // runClientTests = true;
+                    // break;
+                } else if ('api' === arg) {
+                    tasks.push('test:api');
+                } else if ('unit' === arg) {
+                    tasks.push('test:unit');
                 } else if ('e2e' === arg) {
-                    tasks.push('test:e2e:' + serverMode);
+                    tasks.push('test:e2e');
                 } else if ('build' === arg) {
                     grunt.log.warn(
                         'When the build subtask is specified, all other task options will be ignored'
@@ -719,10 +658,10 @@ module.exports = function(grunt) {
                     tasks.slice(0, 0);
                     tasks.push('eslint:dev');
                     tasks.push('build');
-                    tasks.push('test:client:build');
-                    tasks.push('test:server:build');
-                    tasks.push('test:http:build');
-                    tasks.push('test:e2e:build');
+                    // tasks.push('test:client:build');
+                    tasks.push('test:unit');
+                    tasks.push('test:api');
+                    tasks.push('test:e2e');
                     break;
                 } else {
                     // Unrecognized argument.
