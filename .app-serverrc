@@ -1,10 +1,21 @@
 {
+  "default": {
+    "app": {
+      "logLevel": "trace",
+      "defaultPort": 3000,
+      "paths": {
+        "health": "/_health",
+        "error": "/_error"
+      }
+    }
+  },
   "development": {
     "app": {
       "logLevel": "trace",
       "defaultPort": 3000,
       "paths": {
-        "health": "/_health"
+        "health": "/_health",
+        "error": "/_error"
       }
     }
   },
@@ -13,7 +24,8 @@
       "logLevel": "trace",
       "defaultPort": 80,
       "paths": {
-        "health": "/_health"
+        "health": "/_health",
+        "error": "/_error"
       }
     }
   }
