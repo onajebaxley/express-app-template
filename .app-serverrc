@@ -1,0 +1,20 @@
+{
+  "development": {
+    "app": {
+      "logLevel": "trace",
+      "defaultPort": 3000,
+      "paths": {
+        "health": "/_health"
+      }
+    }
+  },
+  "production": {
+    "app": {
+      "logLevel": "trace",
+      "defaultPort": 80,
+      "paths": {
+        "health": "/_health"
+      }
+    }
+  }
+}
