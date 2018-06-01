@@ -24,10 +24,7 @@ const handlers = {
 
                 if (typeof aResponse === 'string') {
                     return res.send(aResponse);
-                } else if (
-                    typeof aResponse === 'object' ||
-                    aResponse instanceof Array
-                ) {
+                } else if (typeof aResponse === 'object') {
                     return res.json(aResponse);
                 }
             };
@@ -51,3 +48,4 @@ const handlers = {
 };
 
 module.exports = handlers;
+

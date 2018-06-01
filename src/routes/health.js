@@ -9,3 +9,4 @@ logger.trace('Registering health check handler');
 router.get('/', _rewire(_getHealthHandler));
 
 module.exports = router;
+

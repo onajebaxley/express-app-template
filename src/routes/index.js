@@ -14,12 +14,18 @@ const routes = {
      */
     setup: (app) => {
         let healthPath = _config.get('app.paths.health');
+        let errorPath = _config.get('app.paths.error');
 
         // ----------  Routers ----------
         _logger.info('Mounting health check routes', {
             path: healthPath
         });
         app.use(healthPath, require('./health'));
+
+        _logger.info('Mounting forced error routes', {
+            path: errorPath
+        });
+        app.use(errorPath, require('./error'));
 
         // ----------  Error routes ----------
         _logger.trace('Setting up 404 error handlers');
