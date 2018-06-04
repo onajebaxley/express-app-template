@@ -1,10 +1,6 @@
 'use strict';
 
-var _folder = require('wysknd-lib').folder;
 const { Directory } = require('@vamship/grunt-utils');
-
-// TODO: 1. Consolidate dependencies on multiple Project tree systems
-// 2. Validate tasks: clean, bump, package, build
 
 // -------------------------------------------------------------------------------
 //  Help documentation
@@ -33,9 +29,7 @@ var HELP_TEXT =
     '           [opt2]:     on specified options. Supported options are as follows:  \n' +
     '           [opt3]:       [lint]   : Executes eslint with default options against\n' +
     '           [opt4]:                  all source files.                           \n' +
-    '           [opt5]:       [client] : Executes client side unit tests against all \n' +
-    '           [opt6]                   source files.                               \n' +
-    '                         [unit]   : Executes server side unit tests against all \n' +
+    '           [opt5]        [unit]   : Executes server side unit tests against all \n' +
     '                                    server source files.                        \n' +
     '                         [api]    : Executes http request test against server   \n' +
     '                                    routes. This task will automatically launch \n' +
@@ -80,7 +74,7 @@ var HELP_TEXT =
     '                       test (dev/build) is specified by the second subtarget.   \n' +
     '                       The first sub target is mandatory.                       \n' +
     '                       If the "build" subtarget is specified, sources must      \n' +
-    '                       already be built and ready for testing int the build     \n' +
+    '                       already be built and ready for testing in the build      \n' +
     '                       directory.                                               \n' +
     '                       If required by the tests, an instance of express will be \n' +
     '                       started prior to executing the tests.                    \n' +
@@ -124,11 +118,6 @@ module.exports = function(grunt) {
     });
 
     /* ------------------------------------------------------------------------
-     * Build configuration parameters
-     * ---------------------------------------------------------------------- */
-    var packageConfig = grunt.file.readJSON('package.json') || {};
-
-    /* ------------------------------------------------------------------------
      * Project structure and static parameters.
      * ---------------------------------------------------------------------- */
     const PROJECT = Directory.createTree('./', {
@@ -160,72 +149,6 @@ module.exports = function(grunt) {
     const NODE_MODULES = PROJECT.getChild('node_modules');
     const COVERAGE = PROJECT.getChild('coverage');
     const WORKING = PROJECT.getChild('working');
-
-    // var PRJ_FS = {
-    // prettier-ignore
-    //     tree: {
-    //                              /* ------------------------------ */
-    //                              /* <ROOT>                         */
-    //         server: {
-    //                              /*  |--- server                   */
-    //             views: null      /*  |   |--- views                */,
-    //             routes: null     /*  |   |--- routes               */
-    //         }                    /*  |                             */,
-    //         client: {
-    //                              /*  |--- client                   */
-    //             css: null        /*  |   |--- css                  */,
-    //             js: null         /*  |   |--- js                   */,
-    //             img: null        /*  |   |--- img                  */,
-    //             lib: null        /*  |   |--- lib                  */
-    //         }                    /*  |                             */,
-    //         test: {
-    //                              /*  |--- test                     */
-    //             client: null     /*  |   |--- client               */,
-    //             e2e: null        /*  |   |--- e2e                  */,
-    //             server: null     /*  |   |--- server               */,
-    //             http: null       /*  |   |--- http                 */
-    //         }                    /*  |                             */,
-    //         logs: null           /*  |--- logs                     */,
-    //         working: {
-    //                              /*  |--- working                  */
-    //             server: {
-    //                              /*  |   |--- server               */
-    //                 views: null  /*  |   |   |--- views            */,
-    //                 routes: null /*  |   |   |--- routes           */
-    //             }                /*  |   |                         */,
-    //             client: {
-    //                              /*  |   |--- client               */
-    //                 css: null    /*  |   |   |--- css              */,
-    //                 js: null     /*  |   |   |--- js               */,
-    //                 img: null    /*  |   |   |--- img              */,
-    //                 lib: null    /*  |   |   |--- lib              */,
-    //                 views: null  /*  |   |   |--- views            */
-    //             }                /*  |   |                         */
-    //         }                    /*  |   |                         */,
-    //         coverage: null       /*  |   |--- coverage             */,
-    //         dist: null           /*  |   |--- dist                 */,
-    //         '.sass-cache': null  /*  |   |--- .sass-cache          */
-    //     }                        /* ------------------------------ */
-    // };
-
-    // PRJ_FS.ROOT = _folder.createFolderTree('./', PRJ_FS.tree);
-
-    // (function _createTreeRefs(parent, subTree) {
-    //     for (var folder in subTree) {
-    //         var folderName = folder.replace('.', '_');
-    //         parent[folderName] = parent.getSubFolder(folder);
-
-    //         var children = subTree[folder];
-    //         if (typeof children === 'object') {
-    //             _createTreeRefs(parent[folder], children);
-    //         }
-    //     }
-    // })(PRJ_FS.ROOT, PRJ_FS.tree);
-
-    // // Shorthand references to key folders.
-    // var SERVER = PRJ_FS.ROOT.server;
-    // var WORKING = PRJ_FS.ROOT.working;
-    // var SERVER_BUILD = WORKING.server;
 
     /* ------------------------------------------------------------------------
      * Grunt task configuration
@@ -346,7 +269,11 @@ module.exports = function(grunt) {
          */
         express: {
             options: {
-                debug: true
+                debug: true,
+                logs: {
+                    out: LOGS.getFilePath('out.log'),
+                    err: LOGS.getFilePath('err.log')
+                }
             },
             dev: {
                 options: {
@@ -415,8 +342,8 @@ module.exports = function(grunt) {
         'lint',
         'test:unit',
         'test:api',
-        'test:e2e'
-        'build',
+        'test:e2e',
+        'build'
         // 'compress:default'
     ]);
 
@@ -425,34 +352,46 @@ module.exports = function(grunt) {
      * tests based on the test type passed in. Tests may be executed against
      * dev code or build artifacts.
      */
-    grunt.registerTask('test', 'Executes tests (unit/api/e2e/all) against sources', (testType) => {
-        testType = testType || 'unit';
-        let knownTestTypes = ['unit', 'api', 'e2e'];
-        let task;
+    grunt.registerTask(
+        'test',
+        'Executes tests (unit/api/e2e/all) against sources',
+        (testType) => {
+            testType = testType || 'unit';
+            let knownTestTypes = ['unit', 'api', 'e2e'];
+            let startServer = false;
+            let task;
 
-        if (knownTestTypes.indexOf(testType) >= 0) {
-            task = `mocha_istanbul:${testType}`;
+            if (knownTestTypes.indexOf(testType) >= 0) {
+                task = `mocha_istanbul:${testType}`;
+                startServer = testType !== 'unit' && !grunt.option('no-server');
 
-            const testSuite = grunt.option('test-suite');
-            if (typeof testSuite === 'string' && testSuite.length > 0) {
-                const path = TEST.getChild(testType).getFilePath(testSuite);
-                grunt.log.writeln(`Running test suite: [${testSuite}]`);
-                grunt.log.writeln(`Tests will be limited to: [${path}]`);
-                grunt.config.set(`mocha_istanbul.${testType}`, path);
+                const testSuite = grunt.option('test-suite');
+                if (typeof testSuite === 'string' && testSuite.length > 0) {
+                    const path = TEST.getChild(testType).getFilePath(testSuite);
+                    grunt.log.writeln(`Running test suite: [${testSuite}]`);
+                    grunt.log.writeln(`Tests will be limited to: [${path}]`);
+                    grunt.config.set(`mocha_istanbul.${testType}`, path);
+                }
+            } else if (testType === 'all') {
+                knownTestTypes.forEach((type) => {
+                    grunt.task.run(`test:${type}`);
+                });
             }
-        } else if (testType === 'all') {
-            knownTestTypes.forEach((type) => {
-                grunt.task.run(`test:${type}`);
-            });
-        }
 
-        if (task) {
-            grunt.task.run(task);
-        } else {
-            grunt.log.error(`Unrecognized test type: [${testType}]`);
-            grunt.log.warn('Type "grunt help" for help documentation');
+            if (task) {
+                if (startServer) {
+                    grunt.task.run('express:dev');
+                }
+                grunt.task.run(task);
+                if (startServer) {
+                    grunt.task.run('express:dev:stop');
+                }
+            } else {
+                grunt.log.error(`Unrecognized test type: [${testType}]`);
+                grunt.log.warn('Type "grunt help" for help documentation');
+            }
         }
-    });
+    );
 
     // Monitor task - track changes on different sources, and enable auto
     // execution of tests if requested.
