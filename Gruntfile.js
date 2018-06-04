@@ -459,20 +459,6 @@ module.exports = function(grunt) {
         },
 
         /**
-         * Configuration for grunt-prettysass, which is used to:
-         *  - Beautify all SASS files
-         */
-        // prettysass: {
-        //     options: {
-        //         indent: 4
-        //     },
-        //     dev: {
-        //         src: [ CLIENT.css.allFilesPattern('scss'),
-        //                 '!' + CLIENT.css.getChildPath('angular-material.scss')]
-        //     }
-        // },
-
-        /**
          * Configuration for grunt-eslint, which is used to:
          *  - Lint source and test files.
          */
@@ -557,7 +543,6 @@ module.exports = function(grunt) {
      */
     grunt.registerTask('default', [
         'format',
-        // 'prettysass:dev',
         'lint',
         'build',
         // 'test:client:build',
@@ -573,7 +558,6 @@ module.exports = function(grunt) {
      */
     grunt.registerTask('package', [
         'format',
-        // 'prettysass:dev',
         'lint',
         'build',
         // 'test:client:build',
