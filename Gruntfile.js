@@ -159,9 +159,14 @@ module.exports = function(grunt) {
          *  - Remove temporary files and folders.
          */
         clean: {
-            dist: [DIST.path],
-            coverage: [COVERAGE.path],
-            logs: [LOGS.path]
+            dist: [DIST.getAllFilesPattern()],
+            working: [WORKING.getAllFilesPattern()],
+            coverage: [COVERAGE.getAllFilesPattern()],
+            logs: [LOGS.getAllFilesPattern('log')],
+            docs: [DOCS.getAllFilesPattern('html'),
+                DOCS.getAllFilesPattern('css'),
+                DOCS.getAllFilesPattern('txt'),
+                DOCS.getAllFilesPattern('js')]
         },
 
         /**
@@ -187,6 +192,12 @@ module.exports = function(grunt) {
                         expand: false,
                         cwd: PROJECT.path,
                         src: ['package.json'],
+                        dest: WORKING.path
+                    },
+                    {
+                        expand: false,
+                        cwd: PROJECT.path,
+                        src: ['Dockerfile'],
                         dest: WORKING.path
                     }
                 ]
@@ -465,7 +476,9 @@ module.exports = function(grunt) {
             }
 
             grunt.task.run('clean:dist');
+            grunt.task.run('clean:working');
             grunt.task.run('clean:logs');
+            grunt.task.run('clean:docs');
             grunt.task.run('copy:compile');
             if (!isDebugMode) {
                 // grunt.task.run('uglify:compile');

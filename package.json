@@ -6,7 +6,7 @@
   "scripts": {
     "start": "export NODE_ENV=production;node src/index.js",
     "dev": "export NODE_ENV=development;nodemon src/index.js",
-    "test": "grunt test:unit",
+    "test": "grunt test:all",
     "docker-build": "docker build --rm --tag expressapp:latest .",
     "docker-run": "docker run -it -h expressapp -p 3000:3000 expressapp:latest"
   },
@@ -39,6 +39,7 @@
     "docdash": "^0.4.0",
     "grunt-bump": "^0.8.0",
     "grunt-contrib-clean": "^1.1.0",
+    "grunt-contrib-copy": "^1.0.0",
     "grunt-contrib-watch": "^1.1.0",
     "grunt-env": "^0.4.4",
     "grunt-eslint": "^20.1.0",
