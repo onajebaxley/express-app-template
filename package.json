@@ -6,7 +6,9 @@
   "scripts": {
     "start": "export NODE_ENV=production;node src/index.js",
     "dev": "export NODE_ENV=development;nodemon src/index.js",
-    "test": "grunt test:unit"
+    "test": "grunt test:unit",
+    "docker-build": "docker build --rm --tag expressapp:latest .",
+    "docker-run": "docker run -it -h expressapp -p 3000:3000 expressapp:latest"
   },
   "repository": {
     "type": "git",
