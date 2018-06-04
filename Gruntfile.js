@@ -16,12 +16,13 @@ var HELP_TEXT =
     ' includes tasks for linting, building and testing.                              \n' +
     '                                                                                \n' +
     ' Supported Tasks:                                                               \n' +
-    '   [default]         : Performs standard pre-commit/push activities. Runs       \n' +
-    '                       prettier on all source files (html and css files are     \n' +
-    '                       also beautified), then runs eslint, and then executes all\n' +
-    '                       tests against the source files. Consider executing       \n' +
-    '                       the test:all:dev task as well to ensure that the         \n' +
-    '                       development workflow is not broken.                      \n' +
+    '   [default]         : Shows this Grunt help message.                           \n' +
+    '                                                                                \n' +
+    '   all               : Performs standard pre-commit/push activities. Runs       \n' +
+    '                       prettier on all source files, then runs eslint, and then \n' +
+    '                       executes all tests against the source files. Consider    \n' +
+    '                       executing the test:all:dev task as well to ensure that   \n' +
+    '                       the development workflow is not broken.                  \n' +
     '                                                                                \n' +
     '   help              : Shows this help message.                                 \n' +
     '                                                                                \n' +
@@ -62,6 +63,7 @@ var HELP_TEXT =
     '                       individually.                                            \n' +
     '                                                                                \n' +
     '   lint              : Executes eslint against all source files.                \n' +
+    '                                                                                \n' +
     '   format            : Beautifies all javascript files in the project.          \n' +
     '                                                                                \n' +
     '   build:[debugMode] : Builds all of the source files and deploys the results   \n' +
@@ -73,7 +75,7 @@ var HELP_TEXT =
     '                       read and troubleshoot.                                   \n' +
     '                                                                                \n' +
     '   test:[unit|api    : Executes tests against source files or build artifacts.  \n' +
-    '     server|e2e|all]:  The type of test to execute is specified by the first    \n' +
+    '         e2e|all]:     The type of test to execute is specified by the first    \n' +
     '         [dev|build]   sub target (client/server/api/e2e/all), and the files to \n' +
     '                       test (dev/build) is specified by the second subtarget.   \n' +
     '                       The first sub target is mandatory.                       \n' +
@@ -138,103 +140,92 @@ module.exports = function(grunt) {
         },
         docs: null,
         logs: null,
+        working: {
+            server: {
+                views: null,
+                routes: null
+            }
+        },
         node_modules: null,
-        coverage: null
+        coverage: null,
+        dist: null
     });
 
     // Shorthand references to key folders.
     const SRC = PROJECT.getChild('src');
+    const DIST = PROJECT.getChild('dist');
+    const LOGS = PROJECT.getChild('logs');
     const TEST = PROJECT.getChild('test');
-    // const DOCS = PROJECT.getChild('docs');
-    // const NODE_MODULES = PROJECT.getChild('node_modules');
+    const DOCS = PROJECT.getChild('docs');
+    const NODE_MODULES = PROJECT.getChild('node_modules');
     const COVERAGE = PROJECT.getChild('coverage');
+    const WORKING = PROJECT.getChild('working');
 
-    var PRJ_FS = {
-        appName: packageConfig.name || '__UNKNOWN__',
-        appVersion: packageConfig.version || '__UNKNOWN__',
-        // prettier-ignore
-        tree: {
-                                 /* ------------------------------ */
-                                 /* <ROOT>                         */
-            server: {
-                                 /*  |--- server                   */
-                views: null      /*  |   |--- views                */,
-                routes: null     /*  |   |--- routes               */
-            }                    /*  |                             */,
-            client: {
-                                 /*  |--- client                   */
-                css: null        /*  |   |--- css                  */,
-                js: null         /*  |   |--- js                   */,
-                img: null        /*  |   |--- img                  */,
-                lib: null        /*  |   |--- lib                  */
-            }                    /*  |                             */,
-            test: {
-                                 /*  |--- test                     */
-                client: null     /*  |   |--- client               */,
-                e2e: null        /*  |   |--- e2e                  */,
-                server: null     /*  |   |--- server               */,
-                http: null       /*  |   |--- http                 */
-            }                    /*  |                             */,
-            logs: null           /*  |--- logs                     */,
-            working: {
-                                 /*  |--- working                  */
-                server: {
-                                 /*  |   |--- server               */
-                    views: null  /*  |   |   |--- views            */,
-                    routes: null /*  |   |   |--- routes           */
-                }                /*  |   |                         */,
-                client: {
-                                 /*  |   |--- client               */
-                    css: null    /*  |   |   |--- css              */,
-                    js: null     /*  |   |   |--- js               */,
-                    img: null    /*  |   |   |--- img              */,
-                    lib: null    /*  |   |   |--- lib              */,
-                    views: null  /*  |   |   |--- views            */
-                }                /*  |   |                         */
-            }                    /*  |   |                         */,
-            coverage: null       /*  |   |--- coverage             */,
-            dist: null           /*  |   |--- dist                 */,
-            '.sass-cache': null  /*  |   |--- .sass-cache          */
-        }                        /* ------------------------------ */
-    };
+    // var PRJ_FS = {
+    // prettier-ignore
+    //     tree: {
+    //                              /* ------------------------------ */
+    //                              /* <ROOT>                         */
+    //         server: {
+    //                              /*  |--- server                   */
+    //             views: null      /*  |   |--- views                */,
+    //             routes: null     /*  |   |--- routes               */
+    //         }                    /*  |                             */,
+    //         client: {
+    //                              /*  |--- client                   */
+    //             css: null        /*  |   |--- css                  */,
+    //             js: null         /*  |   |--- js                   */,
+    //             img: null        /*  |   |--- img                  */,
+    //             lib: null        /*  |   |--- lib                  */
+    //         }                    /*  |                             */,
+    //         test: {
+    //                              /*  |--- test                     */
+    //             client: null     /*  |   |--- client               */,
+    //             e2e: null        /*  |   |--- e2e                  */,
+    //             server: null     /*  |   |--- server               */,
+    //             http: null       /*  |   |--- http                 */
+    //         }                    /*  |                             */,
+    //         logs: null           /*  |--- logs                     */,
+    //         working: {
+    //                              /*  |--- working                  */
+    //             server: {
+    //                              /*  |   |--- server               */
+    //                 views: null  /*  |   |   |--- views            */,
+    //                 routes: null /*  |   |   |--- routes           */
+    //             }                /*  |   |                         */,
+    //             client: {
+    //                              /*  |   |--- client               */
+    //                 css: null    /*  |   |   |--- css              */,
+    //                 js: null     /*  |   |   |--- js               */,
+    //                 img: null    /*  |   |   |--- img              */,
+    //                 lib: null    /*  |   |   |--- lib              */,
+    //                 views: null  /*  |   |   |--- views            */
+    //             }                /*  |   |                         */
+    //         }                    /*  |   |                         */,
+    //         coverage: null       /*  |   |--- coverage             */,
+    //         dist: null           /*  |   |--- dist                 */,
+    //         '.sass-cache': null  /*  |   |--- .sass-cache          */
+    //     }                        /* ------------------------------ */
+    // };
 
-    PRJ_FS.ROOT = _folder.createFolderTree('./', PRJ_FS.tree);
-    PRJ_FS.bannerText =
-        '/*! [' +
-        PRJ_FS.appName +
-        ' v' +
-        PRJ_FS.appVersion +
-        '] Built: <%= grunt.template.today("yyyy-mm-dd HH:MM a") %> */\n';
-    PRJ_FS.publishArchive = PRJ_FS.appName + '_' + PRJ_FS.appVersion + '.zip';
+    // PRJ_FS.ROOT = _folder.createFolderTree('./', PRJ_FS.tree);
 
-    // This is the root url prefix for the app, and represents the path
-    // (relative to root), where the app will be available.
-    // This value should remain unchanged if the app does not sit behind a
-    // proxy. If a proxy is present (that routes to the app based on URL
-    // values), this value should be tweaked to include the proxy path.
-    PRJ_FS.proxyPrefix = ''; //+ PRJ_FS.appName;
+    // (function _createTreeRefs(parent, subTree) {
+    //     for (var folder in subTree) {
+    //         var folderName = folder.replace('.', '_');
+    //         parent[folderName] = parent.getSubFolder(folder);
 
-    (function _createTreeRefs(parent, subTree) {
-        for (var folder in subTree) {
-            var folderName = folder.replace('.', '_');
-            parent[folderName] = parent.getSubFolder(folder);
+    //         var children = subTree[folder];
+    //         if (typeof children === 'object') {
+    //             _createTreeRefs(parent[folder], children);
+    //         }
+    //     }
+    // })(PRJ_FS.ROOT, PRJ_FS.tree);
 
-            var children = subTree[folder];
-            if (typeof children === 'object') {
-                _createTreeRefs(parent[folder], children);
-            }
-        }
-    })(PRJ_FS.ROOT, PRJ_FS.tree);
-
-    // Shorthand references to key folders.
-    var SERVER = PRJ_FS.ROOT.server;
-    var CLIENT = PRJ_FS.ROOT.client;
-    //var TEST = PRJ_FS.ROOT.test;
-    var LOGS = PRJ_FS.ROOT.logs;
-    var DIST = PRJ_FS.ROOT.dist;
-    var WORKING = PRJ_FS.ROOT.working;
-    var SERVER_BUILD = WORKING.server;
-    var CLIENT_BUILD = WORKING.client;
+    // // Shorthand references to key folders.
+    // var SERVER = PRJ_FS.ROOT.server;
+    // var WORKING = PRJ_FS.ROOT.working;
+    // var SERVER_BUILD = WORKING.server;
 
     /* ------------------------------------------------------------------------
      * Grunt task configuration
@@ -245,41 +236,9 @@ module.exports = function(grunt) {
          *  - Remove temporary files and folders.
          */
         clean: {
-            dist: [DIST.getPath()],
-            sassCache: [PRJ_FS.ROOT['_sass-cache'].getPath()],
+            dist: [DIST.path],
             coverage: [COVERAGE.path],
-            logs: [LOGS.getChildPath('*')]
-            // workingJs: {
-            //     src: [ CLIENT_BUILD.js.allFilesPattern() ],
-            //     filter: function(path) {
-            //         return !path.match(/(app.min.js$)/);
-            //     }
-            // },
-            // workingStyles: {
-            //     src: [ CLIENT_BUILD.css.allFilesPattern() ],
-            //     filter: function(path) {
-            //         return !path.match(/app.min.css$/);
-            //     }
-            // },
-            // workingLib: {
-            //     src: [ CLIENT_BUILD.lib.allFilesPattern() ],
-            //     filter: function(path) {
-            //         // Delete everything except for files that will
-            //         // be required in a production deployment.
-            //         return  !path.match(/\/lib\/font-awesome$/i) &&
-            //                 !path.match(/\/lib\/font-awesome\/fonts($|\/.*\.(woff|woff2|ttf|svg|eot|otf)$)/i) &&
-            //                 !path.match(/\/lib\/font-awesome\/css($|\/.*\.min\.css$)/i) &&
-
-            //                 !path.match(/\/lib\/material-design-icons$/i) &&
-            //                 !path.match(/\/lib\/material-design-icons\/iconfont($|\/.*\.css$)/i) &&
-            //                 !path.match(/\/lib\/material-design-icons\/iconfont($|\/.*\.(woff|woff2|ttf|svg|eot|otf|ijmap)$)/i) &&
-
-            //                 true;
-            //     }
-            // },
-            // workingViews: {
-            //     src: [ CLIENT_BUILD.views.allFilesPattern() ]
-            // }
+            logs: [LOGS.path]
         },
 
         /**
@@ -291,102 +250,21 @@ module.exports = function(grunt) {
                 files: [
                     {
                         expand: true,
-                        cwd: SERVER.getPath(),
+                        cwd: SRC.path,
                         src: ['**'],
-                        dest: SERVER_BUILD.getPath()
+                        dest: WORKING.getChild('server').path
                     },
                     {
                         expand: true,
-                        cwd: CLIENT.getPath(),
-                        src: ['**'],
-                        dest: CLIENT_BUILD.getPath()
-                    },
-                    {
-                        expand: true,
-                        cwd: PRJ_FS.ROOT.getPath(),
-                        src: [LOGS.getChildPath('.keep')],
-                        dest: WORKING.getPath()
-                    },
-                    {
-                        expand: true,
-                        cwd: PRJ_FS.ROOT.getPath(),
+                        cwd: PROJECT.path,
                         src: ['.ebextensions/**'],
-                        dest: WORKING.getPath()
+                        dest: WORKING.path
                     },
                     {
                         expand: false,
-                        cwd: PRJ_FS.ROOT.getPath(),
+                        cwd: PROJECT.path,
                         src: ['package.json'],
-                        dest: WORKING.getPath()
-                    },
-                    {
-                        expand: false,
-                        cwd: PRJ_FS.ROOT.getPath(),
-                        src: ['server.js'],
-                        dest: WORKING.getPath()
-                    }
-                ]
-            }
-        },
-
-        /**
-         * Configuration for grunt-contrib-concat, which is used to:
-         *  - Combine one or more files into a single file.
-         */
-        // concat: {
-        //     options: {},
-        //     css: {
-        //         src: CLIENT_BUILD.css.allFilesPattern('css'),
-        //         dest: CLIENT_BUILD.css.getChildPath('app.min.css')
-        //     }
-        // },
-
-        /**
-         * Configuration for grunt-contrib-compress, which is used to:
-         *  - Create compressed archives of build artifacts.
-         */
-        compress: {
-            options: {},
-            default: {
-                options: {
-                    mode: 'zip',
-                    archive: DIST.getChildPath(PRJ_FS.publishArchive)
-                },
-                files: [
-                    {
-                        cwd: WORKING.getPath(),
-                        // .ebextensions is for elastic beanstalk. If the directory
-                        // does not exists, this will have no impact.
-                        src: ['**/*', '.ebextensions/*'],
-                        expand: true
-                    }
-                ]
-            }
-        },
-
-        /**
-         * Configuration for grunt-browserify, which is used to:
-         *  - Combine all CommonJS modules for the browser into a single
-         *    javascript file.
-         */
-        browserify: {
-            compile: {
-                src: CLIENT_BUILD.js.getChildPath('app.js'),
-                dest: CLIENT_BUILD.js.getChildPath('app.min.js'),
-                options: {}
-            }
-        },
-
-        /**
-         * Configuration for grunt-contrib-uglify, which is used to:
-         *  - Minify the compiled application js file
-         */
-        uglify: {
-            compile: {
-                files: [
-                    {
-                        src: CLIENT_BUILD.js.getChildPath('app.min.js'),
-                        dest: CLIENT_BUILD.js.getChildPath('app.min.js')
+                        dest: WORKING.path
                     }
                 ]
             }
@@ -408,39 +286,6 @@ module.exports = function(grunt) {
             unit: [TEST.getChild('unit').getAllFilesPattern('js')],
             api: [TEST.getChild('api').getAllFilesPattern('js')],
             e2e: [TEST.getChild('e2e').getAllFilesPattern('js')]
-        },
-
-        /**
-         * Configuration for grunt-contrib-compass, which is used to:
-         *  - Convert all SASS files into css files.
-         */
-        compass: {
-            options: {
-                importPath: CLIENT_BUILD.css.getPath(),
-                relativeAssets: true,
-                assetCacheBuster: false,
-                raw: 'Sass::Script::Number.precision = 10\n'
-            },
-            compile: {
-                options: {
-                    sassDir: CLIENT_BUILD.css.getPath(),
-                    cssDir: CLIENT_BUILD.css.getPath()
-                }
-            }
-        },
-
-        /**
-         * Configuration for grunt-contrib-cssmin, which is used to:
-         *  - Combine and minify one or more css files into a single css file.
-         */
-        cssmin: {
-            options: {
-                banner: PRJ_FS.bannerText
-            },
-            compile: {
-                src: CLIENT_BUILD.css.getChildPath('app.min.css'),
-                dest: CLIENT_BUILD.css.getChildPath('app.min.css')
-            }
         },
 
         /**
@@ -471,6 +316,18 @@ module.exports = function(grunt) {
         },
 
         /**
+         * Configuration for grunt-jsdoc, which is used to:
+         *  - Generate code documentation.
+         */
+        jsdoc: {
+            options: {
+                destination: DOCS.path,
+                template: NODE_MODULES.getFilePath('docdash')
+            },
+            src: ['package.json', 'README.md', SRC.getAllFilesPattern('js')]
+        },
+
+        /**
          * Configuration for grunt-contrib-watch, which is used to:
          *  - Monitor all source/test files and trigger actions when these
          *    files change.
@@ -494,13 +351,13 @@ module.exports = function(grunt) {
             dev: {
                 options: {
                     node_env: 'development',
-                    script: SERVER.getChildPath('server.js')
+                    script: SRC.getFilePath('index.js')
                 }
             },
-            build: {
+            prod: {
                 options: {
-                    node_env: 'test',
-                    script: SERVER_BUILD.getChildPath('server.js')
+                    node_env: 'production',
+                    script: SRC.getFilePath('index.js')
                 }
             }
         },
@@ -534,21 +391,18 @@ module.exports = function(grunt) {
      * ---------------------------------------------------------------------- */
 
     /**
-     * Default task. Performs default tasks prior to commit/push, including:
+     * Pre check in task. Performs default tasks prior to commit/push, including:
      *  - Beautifying files
      *  - Linting files
      *  - Building sources
      *  - Testing build artifacts
      *  - Cleaning up build results
      */
-    grunt.registerTask('default', [
+    grunt.registerTask('all', [
         'format',
         'lint',
-        'build',
-        // 'test:client:build',
         'test:unit',
-        'test:api',
-        'test:e2e',
+        'build',
         'clean'
     ]);
 
@@ -559,12 +413,11 @@ module.exports = function(grunt) {
     grunt.registerTask('package', [
         'format',
         'lint',
-        'build',
-        // 'test:client:build',
         'test:unit',
         'test:api',
-        'test:e2e',
-        'compress:default'
+        'test:e2e'
+        'build',
+        // 'compress:default'
     ]);
 
     /**
@@ -620,15 +473,6 @@ module.exports = function(grunt) {
 
                 if (arg === 'lint') {
                     tasks.push('eslint:dev');
-                } else if ('client' === arg) {
-                    grunt.log.error('Monitoring client has not been implemented');
-                    // grunt.log.warn(
-                    //     'When client side tests are chosen, monitoring will not run any other tasks'
-                    // );
-                    // tasks.slice(0, 0);
-                    // tasks.push('test:client:monitor');
-                    // runClientTests = true;
-                    // break;
                 } else if ('api' === arg) {
                     tasks.push('test:api');
                 } else if ('unit' === arg) {
@@ -641,11 +485,10 @@ module.exports = function(grunt) {
                     );
                     tasks.slice(0, 0);
                     tasks.push('eslint:dev');
-                    tasks.push('build');
-                    // tasks.push('test:client:build');
                     tasks.push('test:unit');
                     tasks.push('test:api');
                     tasks.push('test:e2e');
+                    tasks.push('build');
                     break;
                 } else {
                     // Unrecognized argument.
@@ -669,9 +512,8 @@ module.exports = function(grunt) {
 
     /**
      * Build task - performs a compilation on all source files
-     *  - Combines and compresses all client side .js files
-     *  - Compiles angular.js html templates
-     *  - Compiles all stylesheet files from .scss to .css
+     *  - Combines and minifies all server side .js files
+     *  - Builds the Docker image
      */
     grunt.registerTask(
         'build',
@@ -683,23 +525,15 @@ module.exports = function(grunt) {
                 grunt.log.writeln('Executing build in debug mode');
             }
 
-            // grunt.task.run('clean:dist'); // TODO: confirm
-            // grunt.task.run('clean:working');
+            grunt.task.run('clean:dist');
+            grunt.task.run('clean:logs');
             grunt.task.run('copy:compile');
-            grunt.task.run('browserify:compile');
-            grunt.task.run('compass:compile');
-            //grunt.task.run('concat:css');
             if (!isDebugMode) {
-                grunt.task.run('uglify:compile');
-                grunt.task.run('cssmin:compile');
+                // grunt.task.run('uglify:compile');
             }
 
-            // grunt.task.run('clean:workingJs');
-            // grunt.task.run('clean:workingStyles');
-            // grunt.task.run('clean:sassCache'); // TODO: confirm
-            // grunt.task.run('clean:coverage'); // TODO: confirm
-            // grunt.task.run('clean:workingLib');
-            // grunt.task.run('clean:workingViews');
+            grunt.task.run('clean:coverage');
+            // TODO: Add grunt-docker-build task
         }
     );
 
@@ -711,12 +545,22 @@ module.exports = function(grunt) {
     });
 
     /**
+     * Alias for the eslint task.
+     */
+    grunt.registerTask('lint', ['eslint:dev']);
+
+    /**
      * Alias for the prettier task.
      */
     grunt.registerTask('format', ['prettier']);
 
     /**
-     * Alias for the eslint task.
+     * Documentation task - generates documentation for the project.
      */
-    grunt.registerTask('lint', ['eslint:dev']);
+    grunt.registerTask('docs', ['jsdoc']);
+
+    /**
+     * Default task. Shows help information.
+     */
+    grunt.registerTask('default', ['help']);
 };
