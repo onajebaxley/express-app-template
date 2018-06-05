@@ -60,13 +60,21 @@ var HELP_TEXT =
     '                                                                                \n' +
     '   format            : Beautifies all javascript files in the project.          \n' +
     '                                                                                \n' +
-    '   build:[debugMode] : Builds all of the source files and deploys the results   \n' +
-    '                       to the build folder. If the "debugMode" sub target is    \n' +
+    '   build:[debugMode] : Builds all of the source files, deploys the results to   \n' +
+    '        :[imageTag]    the build folder, and builds the corresponding Docker    \n' +
+    '                       image with the given imageTag or "latest" if no tag      \n' +
+    '                       is specified. If the "debugMode" sub target is           \n' +
     '                       specified, or, the --debug-mode option is specified, the \n' +
     '                       build will be executed without any optimization. In      \n' +
     '                       addition to speeding up the build process, this option   \n' +
     '                       has the effect of making the build artifact easier to    \n' +
     '                       read and troubleshoot.                                   \n' +
+    '                                                                                \n' +
+    '   run:[imageTag]    : Runs the Docker container instance (which must already   \n' +
+    '      :[exposePort]    exist via "grunt build") of the specified tag and port.  \n' +
+    '                       The container\'s hostname will equal that of the package.\n' +
+    '                       The exposed port MUST be the same port the express app is\n' +
+    '                       defined to run in per "src/index.js".                    \n' +
     '                                                                                \n' +
     '   test:[unit|api    : Executes tests against source files or build artifacts.  \n' +
     '         e2e|all]:     The type of test to execute is specified by the first    \n' +
@@ -140,6 +148,11 @@ module.exports = function(grunt) {
         dist: null
     });
 
+    const packageConfig = grunt.file.readJSON('package.json') || {};
+
+    PROJECT.appName = packageConfig.name || '__UNKNOWN__';
+    PROJECT.version = packageConfig.version || '__UNKNOWN__';
+
     // Shorthand references to key folders.
     const SRC = PROJECT.getChild('src');
     const DIST = PROJECT.getChild('dist');
@@ -197,10 +210,26 @@ module.exports = function(grunt) {
                     {
                         expand: false,
                         cwd: PROJECT.path,
-                        src: ['Dockerfile'],
+                        src: ['.app-serverrc'],
                         dest: WORKING.path
                     }
                 ]
+            }
+        },
+
+        /**
+         * Configuration for grunt-shell, which is used to execute:
+         *  - Docker image build scripts
+         *  - Docker container run script
+         *  - Miscillaneous additional scripts
+         */
+        shell: {
+            'docker-build': {
+                command: (imageTag) => `docker build --rm --tag ${PROJECT.appName}:${imageTag} .`
+
+            },
+            'docker-run': {
+                command: (imageTag, exposePort) => `docker run --rm -i -h ${PROJECT.appName} -p ${exposePort}:${exposePort} ${PROJECT.appName}:${imageTag}`
             }
         },
 
@@ -340,6 +369,8 @@ module.exports = function(grunt) {
         'format',
         'lint',
         'test:unit',
+        'test:api',
+        'test:e2e',
         'build',
         'clean'
     ]);
@@ -468,26 +499,38 @@ module.exports = function(grunt) {
     grunt.registerTask(
         'build',
         'Performs a full build of all source files, preparing it for packaging/publication',
-        function(target) {
+        function(debug, imageTag) {
             var isDebugMode =
-                grunt.option('debug-mode') || target === 'debug-mode';
+                grunt.option('debug-mode') || debug === 'debug-mode';
             if (isDebugMode) {
                 grunt.log.writeln('Executing build in debug mode');
             }
+            imageTag = imageTag || 'latest';
 
             grunt.task.run('clean:dist');
             grunt.task.run('clean:working');
             grunt.task.run('clean:logs');
             grunt.task.run('clean:docs');
             grunt.task.run('copy:compile');
+            grunt.task.run(`shell:docker-build:${imageTag}`);
             if (!isDebugMode) {
                 // grunt.task.run('uglify:compile');
             }
 
             grunt.task.run('clean:coverage');
-            // TODO: Add grunt-docker-build task
         }
     );
+
+    /**
+     * Run task - initializes a Docker container based off a pre-existing
+     * image of the specified tag, exposing the specified ports at runtime.
+     */
+    grunt.registerTask('run', 'Starts Docker container of the given tag and ports', (tag, port) => {
+        tag = tag || 'latest';
+        port = port || '3000';
+
+        grunt.task.run(`shell:docker-run:${tag}:${port}`);
+    });
 
     /**
      * Shows help information on how to use the Grunt tasks.
