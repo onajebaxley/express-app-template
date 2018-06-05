@@ -5,7 +5,7 @@ const _sinon = require('sinon');
 chai.use(require('sinon-chai'));
 const expect = chai.expect;
 const _index = require('../../../src/handlers');
-const { testValues: _testValues, ObjectMock } = require('@vamship/test-utils');
+const { testValues: _testValues } = require('@vamship/test-utils');
 
 describe('_handlers', () => {
 
@@ -46,7 +46,7 @@ describe('_handlers', () => {
         it('should invoke res.send upon text success', () => {
             const successInspector = (event, context, callback) => {
                 expect(callback).to.be.a('function');
-                
+
                 callback(null, 'ok');
             };
 
@@ -58,11 +58,11 @@ describe('_handlers', () => {
 
             expect(cbSpy).to.have.been.calledOnce;
         });
-        
+
         it('should invoke res.json upon object success', () => {
             const successInspector = (event, context, callback) => {
                 expect(callback).to.be.a('function');
-                
+
                 callback(null, {});
             };
 
@@ -78,8 +78,8 @@ describe('_handlers', () => {
         it('should invoke res.json upon array success', () => {
             const successInspector = (event, context, callback) => {
                 expect(callback).to.be.a('function');
-                
-                callback(null, [ 0 ]);
+
+                callback(null, [ 0, _testValues.getString('somestring') ]);
             };
 
             let cbSpy = _sinon.spy();
@@ -94,7 +94,7 @@ describe('_handlers', () => {
         it('should invoke next upon failure', () => {
             const lambdaFailure = (event, context, callback) => {
                 expect(callback).to.be.a('function');
-                
+
                 callback('This lambda failed for some reason');
             };
 

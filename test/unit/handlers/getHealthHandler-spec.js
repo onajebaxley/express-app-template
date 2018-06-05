@@ -6,7 +6,7 @@ _chai.use(require('sinon-chai'));
 _chai.use(require('chai-as-promised'));
 const expect = _chai.expect;
 const _rewire = require('rewire');
-const { testValues: _testValues, ObjectMock } = require('@vamship/test-utils');
+const { ObjectMock } = require('@vamship/test-utils');
 
 const getHealthHandler = _rewire('../../../src/handlers/getHealthHandler');
 
